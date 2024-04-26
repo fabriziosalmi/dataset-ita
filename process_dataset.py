@@ -4,12 +4,12 @@ def process_data(file_path):
     # Define a regex pattern to match lines containing only alphabetical characters
     pattern = re.compile(r'^[a-zA-Z]+$')
 
-    # Reading data and filtering lines based on the regex
+    # Read data and filter lines based on the regex
     with open(file_path, 'r') as file:
         lines = file.readlines()
-    filtered_lines = [line.strip() for line in lines if pattern.match(line.strip())]
+    filtered_lines = [line.strip() for line in lines if line.strip() and pattern.match(line.strip())]
 
-    # Removing duplicates and sorting the lines case-sensitively
+    # Remove duplicates and sort the lines case-sensitively
     unique_lines = sorted(set(filtered_lines), key=str)
 
     # Writing back to dataset.txt
@@ -23,26 +23,18 @@ def process_data(file_path):
 
     # Collect statistics
     for line in unique_lines:
-        start_letter = line[0]
-        end_letter = line[-1]
+        if line:  # Ensure line is not empty
+            start_letter = line[0]
+            end_letter = line[-1]
 
-        # Count items starting with each letter
-        if start_letter in starts_with_count:
-            starts_with_count[start_letter] += 1
-        else:
-            starts_with_count[start_letter] = 1
+            # Count items starting with each letter
+            starts_with_count[start_letter] = starts_with_count.get(start_letter, 0) + 1
 
-        # Count items ending with each letter
-        if end_letter in ends_with_count:
-            ends_with_count[end_letter] += 1
-        else:
-            ends_with_count[end_letter] = 1
+            # Count items ending with each letter
+            ends_with_count[end_letter] = ends_with_count.get(end_letter, 0) + 1
 
-        # Track longest word starting with each letter
-        if start_letter not in longest_words_start:
-            longest_words_start[start_letter] = line
-        else:
-            if len(line) > len(longest_words_start[start_letter]):
+            # Track longest word starting with each letter
+            if start_letter not in longest_words_start or len(line) > len(longest_words_start[start_letter]):
                 longest_words_start[start_letter] = line
 
     # Write to boundaries.log with additional stats
