@@ -1,48 +1,58 @@
-def process_data(file_path):
-    # Reading data and removing duplicates
-    with open(file_path, 'r') as file:
-        unique_lines = sorted(set(file.readlines()), key=str)
+import re
 
-    # Sorting lines case-sensitively
-    unique_lines.sort()
+def process_data(file_path):
+    # Define a regex pattern to match lines containing only alphabetical characters
+    pattern = re.compile(r'^[a-zA-Z]+$')
+
+    # Reading data and filtering lines based on the regex
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+    filtered_lines = [line.strip() for line in lines if pattern.match(line.strip())]
+
+    # Removing duplicates and sorting the lines case-sensitively
+    unique_lines = sorted(set(filtered_lines), key=str)
 
     # Writing back to dataset.txt
     with open(file_path, 'w') as file:
-        file.writelines(unique_lines)
+        file.writelines(line + '\n' for line in unique_lines)
 
-    # Prepare boundaries.log content and stats
-    boundaries = {}
+    # Initialize dictionaries for stats
     starts_with_count = {}
-    total_rows = len(unique_lines)
+    ends_with_count = {}
+    longest_words_start = {}
 
+    # Collect statistics
     for line in unique_lines:
-        line_clean = line.strip()
-        start_letter = line_clean[0]
-        end_letter = line_clean[-1]
+        start_letter = line[0]
+        end_letter = line[-1]
 
-        # Update starts_with_count dictionary
+        # Count items starting with each letter
         if start_letter in starts_with_count:
             starts_with_count[start_letter] += 1
         else:
             starts_with_count[start_letter] = 1
 
-        # Update boundaries dictionary
-        if start_letter not in boundaries:
-            boundaries[start_letter] = {'first': line_clean, 'last': line_clean}
+        # Count items ending with each letter
+        if end_letter in ends_with_count:
+            ends_with_count[end_letter] += 1
         else:
-            boundaries[start_letter]['last'] = line_clean
+            ends_with_count[end_letter] = 1
 
-        if end_letter not in boundaries:
-            boundaries[end_letter] = {'first': line_clean, 'last': line_clean}
+        # Track longest word starting with each letter
+        if start_letter not in longest_words_start:
+            longest_words_start[start_letter] = line
         else:
-            boundaries[end_letter]['last'] = line_clean
+            if len(line) > len(longest_words_start[start_letter]):
+                longest_words_start[start_letter] = line
 
-    # Writing boundaries.log with additional stats
+    # Write to boundaries.log with additional stats
     with open('boundaries.log', 'w') as log:
-        log.write(f"Total rows: {total_rows}\n")
-        for letter, info in sorted(boundaries.items()):
-            starts_with = starts_with_count.get(letter, 0)
-            log.write(f"{letter}: First starts {info['first']}, Last starts {info['last']}, Total starts {starts_with}\n")
+        log.write(f"Total rows: {len(unique_lines)}\n")
+        for letter in sorted(set(starts_with_count.keys()).union(ends_with_count.keys())):
+            starts = starts_with_count.get(letter, 0)
+            ends = ends_with_count.get(letter, 0)
+            longest_word = longest_words_start.get(letter, 'N/A')
+            log.write(f"{letter}: Starts {starts}, Ends {ends}, Longest {longest_word}\n")
 
 if __name__ == '__main__':
     process_data('dataset.txt')
