@@ -20,10 +20,12 @@ def process_data(file_path):
     starts_with_count = {}
     ends_with_count = {}
     longest_words_start = {}
+    first_words = {}
+    last_words = {}
 
     # Collect statistics
     for line in unique_lines:
-        if line:  # Ensure line is not empty
+        if line:
             start_letter = line[0]
             end_letter = line[-1]
 
@@ -37,6 +39,20 @@ def process_data(file_path):
             if start_letter not in longest_words_start or len(line) > len(longest_words_start[start_letter]):
                 longest_words_start[start_letter] = line
 
+            # Track first word starting with each letter
+            if start_letter not in first_words:
+                first_words[start_letter] = line
+            else:
+                if line < first_words[start_letter]:  # Check if current line should replace the stored "first"
+                    first_words[start_letter] = line
+
+            # Track last word starting with each letter
+            if start_letter not in last_words:
+                last_words[start_letter] = line
+            else:
+                if line > last_words[start_letter]:  # Check if current line should replace the stored "last"
+                    last_words[start_letter] = line
+
     # Write to boundaries.log with additional stats
     with open('boundaries.log', 'w') as log:
         log.write(f"Total rows: {len(unique_lines)}\n")
@@ -44,7 +60,9 @@ def process_data(file_path):
             starts = starts_with_count.get(letter, 0)
             ends = ends_with_count.get(letter, 0)
             longest_word = longest_words_start.get(letter, 'N/A')
-            log.write(f"{letter}: Starts {starts}, Ends {ends}, Longest {longest_word}\n")
+            first_word = first_words.get(letter, 'N/A')
+            last_word = last_words.get(letter, 'N/A')
+            log.write(f"{letter}: Starts {starts}, Ends {ends}, Longest {longest_word}, First {first_word}, Last {last_word}\n")
 
 if __name__ == '__main__':
     process_data('dataset.txt')
