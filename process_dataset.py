@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 
 def process_data(file_path):
     # Define a regex pattern to match lines containing only alphabetical characters
@@ -6,19 +7,18 @@ def process_data(file_path):
 
     # Read data and filter lines based on the regex
     with open(file_path, 'r') as file:
-        lines = file.readlines()
-    filtered_lines = [line.strip() for line in lines if line.strip() and pattern.match(line.strip())]
+        lines = [line.strip() for line in file if line.strip() and pattern.match(line.strip())]
 
     # Remove duplicates and sort the lines case-sensitively
-    unique_lines = sorted(set(filtered_lines), key=str)
+    unique_lines = sorted(set(lines), key=str)
 
-    # Writing back to dataset.txt
+    # Write back to dataset.txt
     with open(file_path, 'w') as file:
-        file.writelines(line + '\n' for line in unique_lines)
+        file.writelines(f"{line}\n" for line in unique_lines)
 
-    # Initialize dictionaries for stats
-    starts_with_count = {}
-    ends_with_count = {}
+    # Initialize dictionaries for stats using defaultdict
+    starts_with_count = defaultdict(int)
+    ends_with_count = defaultdict(int)
     longest_words_start = {}
     first_words = {}
     last_words = {}
@@ -30,39 +30,34 @@ def process_data(file_path):
             end_letter = line[-1]
 
             # Count items starting with each letter
-            starts_with_count[start_letter] = starts_with_count.get(start_letter, 0) + 1
+            starts_with_count[start_letter] += 1
 
             # Count items ending with each letter
-            ends_with_count[end_letter] = ends_with_count.get(end_letter, 0) + 1
+            ends_with_count[end_letter] += 1
 
             # Track longest word starting with each letter
             if start_letter not in longest_words_start or len(line) > len(longest_words_start[start_letter]):
                 longest_words_start[start_letter] = line
 
             # Track first word starting with each letter
-            if start_letter not in first_words:
+            if start_letter not in first_words or line < first_words[start_letter]:
                 first_words[start_letter] = line
-            else:
-                if line < first_words[start_letter]:  # Check if current line should replace the stored "first"
-                    first_words[start_letter] = line
 
             # Track last word starting with each letter
-            if start_letter not in last_words:
+            if start_letter not in last_words or line > last_words[start_letter]:
                 last_words[start_letter] = line
-            else:
-                if line > last_words[start_letter]:  # Check if current line should replace the stored "last"
-                    last_words[start_letter] = line
 
-    # Write to boundaries.log with additional stats
+    # Write statistics to boundaries.log
     with open('boundaries.log', 'w') as log:
         log.write(f"Total rows: {len(unique_lines)}\n")
-        for letter in sorted(set(starts_with_count.keys()).union(ends_with_count.keys())):
-            starts = starts_with_count.get(letter, 0)
-            ends = ends_with_count.get(letter, 0)
-            longest_word = longest_words_start.get(letter, 'N/A')
-            first_word = first_words.get(letter, 'N/A')
-            last_word = last_words.get(letter, 'N/A')
-            log.write(f"{letter}: Starts {starts}, Ends {ends}, Longest {longest_word}, First {first_word}, Last {last_word}\n")
+        for letter in sorted(set(starts_with_count) | set(ends_with_count)):
+            log.write(
+                f"{letter}: Starts {starts_with_count[letter]}, "
+                f"Ends {ends_with_count[letter]}, "
+                f"Longest {longest_words_start.get(letter, 'N/A')}, "
+                f"First {first_words.get(letter, 'N/A')}, "
+                f"Last {last_words.get(letter, 'N/A')}\n"
+            )
 
 if __name__ == '__main__':
     process_data('dataset.txt')
